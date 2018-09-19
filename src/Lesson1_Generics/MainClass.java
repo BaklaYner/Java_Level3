@@ -23,10 +23,10 @@ public class MainClass {
         System.out.println("arrStr before swap: " + Arrays.toString(arrStr));
         System.out.println();
 
-        obj.swapTwoElements(0, 4, arr);
-        obj.swapTwoElements(0, 4, arr2);
-        obj.swapTwoElements(0, 4, arr3);
-        obj.swapTwoElements(0, 4, arrStr);
+        obj.swapTwoElements(arr, 0, 4);
+        obj.swapTwoElements(arr2, 0, 4);
+        obj.swapTwoElements(arr3, 0, 4);
+        obj.swapTwoElements(arrStr, 0, 4);
 
         System.out.println("arr after swap: " + Arrays.toString(arr));
         System.out.println("arr2 after swap: " + Arrays.toString(arr2));
@@ -73,18 +73,18 @@ public class MainClass {
     }
 
     // Task 1.
-    <T> void swapTwoElements(int firstInd, int secondInd, T... arr) {
+    private void swapTwoElements(Object[] arr, int firstInd, int secondInd) {
         if (arr != null &&
                 (firstInd >= 0 && firstInd < arr.length) &&
                 (secondInd >= 0 && secondInd < arr.length)) {
-            T temp = arr[firstInd];
+            Object temp = arr[firstInd];
             arr[firstInd] = arr[secondInd];
             arr[secondInd] = temp;
         }
     }
 
     // Task 2.
-    <T> ArrayList<T> arrayToArrayList(T... arr) {
+    private <T> ArrayList<T> arrayToArrayList(T... arr) {
         if (arr != null) {
             return new ArrayList<>(Arrays.asList(arr));
         }
@@ -92,7 +92,7 @@ public class MainClass {
     }
 
     // Task 2. Version 2.
-    <T> ArrayList<T> arrayToArrayList2(T... arr) {
+    private <T> ArrayList<T> arrayToArrayList2(T... arr) {
         if (arr != null) {
             ArrayList<T> list = new ArrayList<>();
             for (int i = 0; i < arr.length; i++) {

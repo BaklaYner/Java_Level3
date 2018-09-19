@@ -2,7 +2,7 @@ package Lesson1_Generics;
 
 // Task 3.a
 abstract class Fruit {
-    private final float weight;
+    private float weight;
 
     Fruit(float weight) {
         this.weight = weight;
