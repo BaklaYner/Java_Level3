@@ -1,0 +1,120 @@
+﻿
+/*
+    Класс с методами подключения, отключения и запросов к базе.
+*/
+
+import java.sql.*;
+
+public class SqlClient {
+    private static Connection connection;
+    private static Statement statement;
+
+    synchronized static void connect() throws ClassNotFoundException, SQLException {
+        Class.forName("org.sqlite.JDBC");
+        connection = DriverManager.getConnection("jdbc:sqlite:chatDB.db");
+        statement = connection.createStatement();
+    }
+
+    synchronized static void disconnect() {
+        try {
+            statement.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        try {
+            connection.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    synchronized static String getNickname(String login, String password) {
+        String request = String.format("SELECT nickname FROM users WHERE login = '%s' AND password = '%s'", login, password);
+        try (ResultSet set = statement.executeQuery(request)) {
+            if (set.next()) {
+                return set.getString("nickname");
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        return null;
+    }
+
+    synchronized static boolean isNickExist(String nickname) {
+        String request = String.format("SELECT * FROM users WHERE nickname = '%s'", nickname);
+        try (ResultSet set = statement.executeQuery(request)) {
+            return set.next();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    synchronized static void changeNickname(String oldNick, String newNick) {
+        String request = String.format("UPDATE users SET nickname = '%s' WHERE nickname = '%s'", newNick, oldNick);
+        try {
+            statement.executeUpdate(request);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+}
+
+/*
+    Метод с запросом на авторизацию и получение никнейма из таблицы по логину и паролю.
+*/
+
+private void handleNonAuthMsg(ClientThread newClient, String message) {
+        String[] arr = message.split(Messages.DELIMITER);
+        if (arr.length != 3 || !arr[0].equals(Messages.AUTH_REQUEST)) {
+            newClient.msgFormatError(message);
+            return;
+        }
+        String login = arr[1];
+        String password = arr[2];
+        String nickname = SqlClient.getNickname(login, password);
+        if (nickname == null) {
+            putLog(String.format("Invalid login/password: login='%s', password='%s'", login, password));
+            newClient.authError();
+        } else {
+            ClientThread user = findClientThreadByNickname(nickname);
+            newClient.authAccept(nickname);
+            if (user != null) {
+                user.reconnect();
+            } else {
+                sendToAllAutorizedClients(Messages.getBroadcast("Server", nickname + " connected!"));
+                newClient.sendMessage(Messages.getBroadcast("Server",
+                        "To change your nickname, enter: /changenick newNick"));
+            }
+            sendToAllAutorizedClients(Messages.getUserList(getUsers()));
+        }
+    }
+
+/*
+    Метод с обработкой запроса на изменение ника, сначала проверка на существование указанного нового ника, затем в случае его отсутствия,
+    запрос на изменение.
+*/
+
+private void handleAuthMsg(ClientThread client, String message) {
+        String[] arr = message.split(Messages.DELIMITER);
+        String msgType = arr[0];
+        switch (msgType) {
+            case Messages.CLIENT_BCAST:
+                sendToAllAutorizedClients(Messages.getBroadcast(client.getNickname(), arr[1]));
+                break;
+            case Messages.CHANGE_NICK_REQUEST:
+                if (SqlClient.isNickExist(arr[1])) {
+                    client.sendMessage(Messages.getBroadcast("Server", "Nickname '" +
+                            arr[1] + "' is already taken"));
+                } else {
+                    SqlClient.changeNickname(client.getNickname(), arr[1]);
+                    sendToAllAutorizedClients(Messages.getBroadcast("Server", client.getNickname() +
+                            " change nickname to " + arr[1]));
+                    client.setNickname(arr[1]);
+                    sendToAllAutorizedClients(Messages.getUserList(getUsers()));
+                }
+                break;
+            default:
+                client.msgFormatError(message);
+        }
+    }
