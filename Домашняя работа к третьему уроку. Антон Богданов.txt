@@ -1,0 +1,97 @@
+﻿
+/*
+    Метод записи логов в файл.
+*/
+
+private void writeLogFile(String msg) {
+    try (FileWriter fileWriter = new FileWriter("log.txt", true)) {
+        fileWriter.write(msg + "\n");
+        fileWriter.flush();
+    } catch (IOException e) {
+        if (!IOErrorShown) {
+            IOErrorShown = true;
+            JOptionPane.showMessageDialog(null, "Log file write error",
+                    "Exception", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+}
+
+/*
+    Вызов метода записи лога.
+*/
+
+private void handleMessage(String message) {
+    String[] arr = message.split(Messages.DELIMITER);
+    String msgType = arr[0];
+    switch (msgType) {
+        case Messages.AUTH_ACCEPT:
+            setTitle(TITLE + " logged in as " + arr[1]);
+            break;
+        case Messages.AUTH_ERROR:
+            putLog(message);
+            writeLogFile(message);
+            break;
+        case Messages.MESSAGE_FORMAT_ERROR:
+            putLog(message);
+            writeLogFile(message);
+            break;
+        case Messages.BROADCAST:
+            putLog(arr[2] + dateFormat.format(Long.parseLong(arr[1])) + arr[3]);
+            writeLogFile(arr[2] + dateFormat.format(Long.parseLong(arr[1])) + arr[3]);
+            break;
+        case Messages.USER_LIST:
+            String[] users = Arrays.copyOfRange(arr, 1, arr.length);
+            Arrays.sort(users);
+            userList.setListData(users);
+            break;
+        default:
+            throw new RuntimeException("Unknown message type: " + message);
+    }
+}
+
+/*
+    Метод загрузки локальной истории из не более чем NumOfLines(100) последний сообщений.
+*/
+
+private void loadHistory(int numOfLines) {
+    String[] history = new String[numOfLines];
+    StringBuilder result = new StringBuilder();
+    int i = 0;
+    try (BufferedReader log = new BufferedReader(new FileReader("log.txt"))) {
+        String line;
+        while ((line = log.readLine()) != null) {
+            history[i % numOfLines] = line;
+            i++;
+        }
+    } catch (IOException e) {
+        if (!IOErrorShown) {
+            IOErrorShown = true;
+            JOptionPane.showMessageDialog(null, "Log file read error",
+                    "Exception", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    if (i < numOfLines) {
+        for (int j = 0; j < i; j++) {
+            result.append(history[j]).append("\n");
+        }
+    } else {
+        for (int j = i; j < (numOfLines + i); j++) {
+            result.append(history[j % numOfLines]).append("\n");
+        }
+    }
+    putLog(result.toString());
+}
+
+/*
+    Вызов метода загрузки локальной истории.
+*/
+
+@Override
+public void onSocketThreadIsReady(SocketThread thread, Socket socket) {
+    panelBottom.setVisible(true);
+    panelTop.setVisible(false);
+    loadHistory(NUM_OF_LOG_LINES);
+    String login = tfLogin.getText();
+    String password = new String(tfPassword.getPassword());
+    thread.sendMessage(Messages.getAuthRequest(login, password));
+}
