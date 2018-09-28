@@ -1,0 +1,71 @@
+﻿
+/*
+    Первое задание.
+*/
+
+public class ABCPrinter {
+    private static volatile char current_char = 'A';
+
+    public static void main(String[] args) {
+        ABCPrinter printer = new ABCPrinter();
+        printer.print();
+    }
+
+    private void print() {
+        new Thread(() -> {
+            try {
+                for (int i = 0; i < 5; i++) {
+                    synchronized (this) {
+                        while (current_char != 'A') {
+                            wait();
+                        }
+                        System.out.print("A");
+                        current_char = 'B';
+                        notifyAll();
+                    }
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }).start();
+
+        new Thread(() -> {
+            try {
+                for (int i = 0; i < 5; i++) {
+                    synchronized (this) {
+                        while (current_char != 'B') {
+                            wait();
+                        }
+                        System.out.print("B");
+                        current_char = 'C';
+                        notifyAll();
+                    }
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }).start();
+
+        new Thread(() -> {
+            try {
+                for (int i = 0; i < 5; i++) {
+                    synchronized (this) {
+                        while(current_char != 'C') {
+                            wait();
+                        }
+                        System.out.print("C");
+                        current_char = 'A';
+                        notifyAll();
+                    }
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
+
+}
+
+/*
+    Второе, увы "ниасилил". Не догадался как в существующую архитектуру впилить пул потоков.
+*/
