@@ -1,0 +1,228 @@
+﻿
+/*
+    Класс с методами, выполняющими манипуляции с массивами в соответсвии с заданием.
+*/
+
+public class MainClass {
+
+    public int[] trimAfterLast4(int[] arr) {
+        if (arr == null || arr.length == 0) {
+            throw new IllegalArgumentException("Source array should be NOT null and NOT empty! ");
+        }
+        int indexOfLast4 = -1;
+
+        for (int i = arr.length - 1; i >= 0; i--) {
+            if (arr[i] == 4) {
+                indexOfLast4 = i;
+                break;
+            }
+        }
+        if (indexOfLast4 == -1) {
+            throw new RuntimeException("There are no 4s in source array: " + Arrays.toString(arr));
+        }
+        return Arrays.copyOfRange(arr, indexOfLast4 + 1, arr.length);
+    }
+
+    public boolean checkArrayFor1And4(int[] arr) {
+        if (arr == null) return false;
+        boolean find1 = false;
+        boolean find4 = false;
+
+        for (int i = 0; i < arr.length; i++) {
+            if (arr[i] != 1 && arr[i] != 4) return false;
+            if (arr[i] == 1) find1 = true;
+            if (arr[i] == 4) find4 = true;
+        }
+        return find1 && find4;
+    }
+
+}
+
+/*
+    Классы с тестами методов.
+*/
+
+@RunWith(Parameterized.class)
+public class CheckArrayFor1And4GroupTestFalse {
+    private static MainClass mc;
+    private int[] source;
+
+    public CheckArrayFor1And4GroupTestFalse(int[] source) {
+        this.source = source;
+    }
+
+    @Parameterized.Parameters
+    public static Collection<Object[]> data() {
+        return Arrays.asList(new Object[][]{
+                {new int[]{4, 4, 4, 4, 4}},
+                {new int[]{1, 1, 1, 1, 1}},
+                {new int[]{1, 4, 5, 1, 4}},
+                {new int[]{4, 1, 1, 4, 3}},
+                {new int[]{3, 4, 1, 1, 4}},
+        });
+    }
+
+    @BeforeClass
+    public static void init() {
+        mc = new MainClass();
+    }
+
+    @Test
+    public void checkFalse() {
+        Assert.assertFalse(mc.checkArrayFor1And4(source));
+    }
+
+}
+
+@RunWith(Parameterized.class)
+public class CheckArrayFor1And4GroupTestTrue {
+    private static MainClass mc;
+    private int[] source;
+
+    public CheckArrayFor1And4GroupTestTrue(int[] source) {
+        this.source = source;
+    }
+
+    @Parameterized.Parameters
+    public static Collection<Object[]> data() {
+        return Arrays.asList(new Object[][]{
+                {new int[]{1, 4, 4, 4, 4}},
+                {new int[]{4, 4, 4, 4, 1}},
+                {new int[]{4, 1, 1, 1, 1}},
+                {new int[]{1, 1, 1, 1, 4}},
+                {new int[]{4, 4, 1, 1, 4}},
+        });
+    }
+
+    @BeforeClass
+    public static void init() {
+        mc = new MainClass();
+    }
+
+    @Test
+    public void checkTrue() {
+        Assert.assertTrue(mc.checkArrayFor1And4(source));
+    }
+
+}
+
+public class TrimAfterLast4ExceptionsTest {
+    private static MainClass mc;
+
+    @BeforeClass
+    public static void init() {
+        mc = new MainClass();
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void trimAfterLast4Without4Test() {
+        mc.trimAfterLast4(new int[]{1, 2, 3, 5, 3, 2, 1});
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void trimAfterLast4EmptyTest() {
+        mc.trimAfterLast4(new int[]{});
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void trimAfterLast4NullTest() {
+        mc.trimAfterLast4(null);
+    }
+
+}
+
+@RunWith(Parameterized.class)
+public class TrimAfterLast4GroupTest {
+    private static MainClass mc;
+    private int[] expected;
+    private int[] source;
+
+    public TrimAfterLast4GroupTest(int[] expected, int[] source) {
+        this.expected = expected;
+        this.source = source;
+    }
+
+    @Parameterized.Parameters
+    public static Collection<Object[]> data() {
+        return Arrays.asList(new Object[][]{
+                {new int[]{1, 7}, new int[]{1, 2, 4, 4, 2, 3, 4, 1, 7}},
+                {new int[]{2, 1}, new int[]{7, 1, 4, 3, 2, 4, 4, 2, 1}},
+                {new int[]{5, 6, 7, 8, 9, 10}, new int[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}},
+                {new int[]{3, 2, 1}, new int[]{10, 9, 8, 7, 6, 5, 4, 3, 2, 1}},
+                {new int[]{5, 5, 3}, new int[]{4, 4, 3, 3, 4, 5, 5, 3}},
+        });
+    }
+
+    @BeforeClass
+    public static void init() {
+        mc = new MainClass();
+    }
+
+    @Test
+    public void trimAfterLast4Test() {
+        Assert.assertArrayEquals(expected, mc.trimAfterLast4(source));
+    }
+
+}
+
+/*
+    Logger объявление, инициализация и настройка.
+*/
+
+public class ChatServer implements ServerSocketThreadListener, SocketThreadListener {
+    private static final Logger logger = Logger.getLogger(ChatServer.class.getName());
+    private final int timeout = 3000;
+    private final DateFormat dateFormat = DateFormat.getTimeInstance(DateFormat.DEFAULT,
+            new Locale("ru", "RU"));
+    private ServerSocketThread server;
+    private ChatServerListener listener;
+    private Vector<SocketThread> userList = new Vector<>();
+
+    public ChatServer(ChatServerListener listener) {
+        this.listener = listener;
+
+        logger.setLevel(Level.ALL);
+        Logger.getLogger("").removeHandler(Logger.getLogger("").getHandlers()[0]);
+        Handler parentHandler;
+        try {
+            parentHandler = new FileHandler("logfile%g.log", 10 * 1024, 5, true);
+        } catch (IOException e) {
+            parentHandler = new ConsoleHandler();
+        }
+        parentHandler.setFormatter(new XMLFormatter());
+        parentHandler.setLevel(Level.ALL);
+        Logger.getLogger("").addHandler(parentHandler);
+
+        Handler myHandler = new ConsoleHandler();
+        myHandler.setLevel(Level.ALL);
+        myHandler.setFormatter(new SimpleFormatter());
+        logger.addHandler(myHandler);
+    }
+. . .
+}
+
+/*
+    Метод, вызывающийся при большинстве событий на сервере, за исключением получения сообщения
+    от клиентов, так как у нас в чате к серверу есть еще и GUI, он(GUI) является листенером и
+    в его текстовое поле попадают эти сообщения.
+*/
+
+private void putLog(String msg) {
+    logger.log(Level.INFO, msg);
+    msg = dateFormat.format(new Date()) + " - " + Thread.currentThread().getName() + ": " + msg;
+    listener.onChatServerMessage(msg);
+}
+
+/*
+    Метод вызывающийся при получении сообщения от клиента.
+*/
+
+public synchronized void onReceiveMessage(SocketThread thread, Socket socket, String message) {
+    ClientThread client = (ClientThread) thread;
+    logger.log(Level.INFO, "Message:'" + message + "' - from " + client.getName() + " received.");
+    if (client.isAutorized()) {
+        handleMsgFromAuthClient(client, message);
+    } else {
+        handleMsgFromNonAuthClient(client, message);
+    }
+}
