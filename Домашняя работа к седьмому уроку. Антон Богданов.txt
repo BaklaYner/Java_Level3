@@ -1,0 +1,138 @@
+﻿
+/*
+    Классы аннотаций.
+*/
+
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.METHOD)
+public @interface Test {
+    int priority() default 5;
+}
+
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.METHOD)
+public @interface BeforeSuite {
+}
+
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.METHOD)
+public @interface AfterSuite {
+}
+
+/*
+    Класс испытуемый.
+*/
+
+public class TestClass {
+
+    @BeforeSuite
+    public void first() {
+        System.out.println("Before");
+    }
+
+    @AfterSuite
+    protected void last() {
+        System.out.println("After");
+    }
+
+    @Test(priority = 9)
+    public void meth2() {
+        System.out.println("2");
+    }
+
+    @Test(priority = 3)
+    void meth4() {
+        System.out.println("4");
+    }
+
+    @Test
+    protected void meth3() {
+        System.out.println("3");
+    }
+
+    @Test(priority = 10)
+    private void meth1() {
+        System.out.println("1");
+    }
+
+    @Test(priority = 1)
+    void meth5() {
+        System.out.println("5");
+    }
+
+    private void skip() {
+        System.out.println("This method should be skipped");
+    }
+
+}
+
+/*
+    Класс, запускающий методы-тесты.
+*/
+public class Tester {
+
+    public static void start(Class c) {
+        Object instance = null;
+        int numOfBefore = 0;
+        int numOfAfter = 0;
+        Method before = null;
+        Method after = null;
+        ArrayList<Method> tests = new ArrayList<>();
+
+        Method[] methods = c.getDeclaredMethods();
+        for (Method method : methods) {
+            method.setAccessible(true);
+            if (method.isAnnotationPresent(BeforeSuite.class)) {
+                before = method;
+                numOfBefore++;
+            } else if (method.isAnnotationPresent(AfterSuite.class)) {
+                after = method;
+                numOfAfter++;
+            } else if (method.isAnnotationPresent(Test.class)) {
+                int priority = method.getAnnotation(Test.class).priority();
+                if (priority < 1 || priority > 10) {
+                    throw new RuntimeException("The priority of the method should be in range 1 to 10 inclusive. " +
+                            "The priority of: '" + method.getName() + "()' is set to " + priority);
+                }
+                tests.add(method);
+            }
+            if (numOfBefore > 1 || numOfAfter > 1) {
+                throw new RuntimeException("No more than one method annotated with @BeforeSuite and @AfterSuite" +
+                        " is allowed.");
+            }
+        }
+
+        tests.sort((o1, o2) -> o2.getAnnotation(Test.class).priority() - o1.getAnnotation(Test.class).priority());
+
+        try {
+            instance = c.newInstance();
+        } catch (InstantiationException | IllegalAccessException e) {
+            e.printStackTrace();
+        }
+
+        if (before != null) {
+            try {
+                before.invoke(instance);
+            } catch (IllegalAccessException | InvocationTargetException e) {
+                e.printStackTrace();
+            }
+        }
+
+        for (Method test : tests) {
+            try {
+                test.invoke(instance);
+            } catch (IllegalAccessException | InvocationTargetException e) {
+                e.printStackTrace();
+            }
+        }
+
+        if (after != null) {
+            try {
+                after.invoke(instance);
+            } catch (IllegalAccessException | InvocationTargetException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+}
